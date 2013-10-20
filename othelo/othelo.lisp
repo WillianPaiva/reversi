@@ -161,22 +161,26 @@
 
 (defun start (st)
    (print-board *board*)
-   (princ (format t "~% ~% ~% ~A" "choose a color 1 for black and 2 for White")) 
-   (choice (read)))
+   (princ (format t "~% ~% ~% ~A" "choose a color 1 for BLACK and 2 for WHITE     =>")) 
+   (loop while (not (choice (read)))))
 
 (defun choice (choice)
   (print choice)
   (if (= choice 1)
       (progn
-        (princ "you chosed black") 
+        (princ "you chosed BLACK") 
         t)
       (if (= choice 2)
        (progn 
-        (princ "you choosed white")
+        (princ "you choosed WHITE")
         t)
        (progn
-        (princ "wrong choice please try again")
-        nil)    
+        (princ "wrong choice please try again BLACK = 1 WHITE = 2       =>")
+        nil))))
+
+
+(defun game-launch (black-player white-player)
+  )
 
 (defun cross-product (fn xlist ylist)
   "Return a list of all (fn x y) values."
@@ -201,4 +205,9 @@
     (if (valid-place num)
         (elt square-names num)
         num)))
+
+ (defun human (player board)
+  (format t "~&~c to move ~a: " (piece_simbol player)
+          (mapcar #'88->h8 (possible-moves player board)))
+  (h8->88 (read)))
 
