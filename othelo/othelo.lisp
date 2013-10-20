@@ -160,18 +160,23 @@
 (defvar st 1)
 
 (defun start (st)
-  (loop while(= st 1)do
-   (princ "choose a color B for black and W for White") 
-   (choice (read))))
-
+   (print-board *board*)
+   (princ (format t "~% ~% ~% ~A" "choose a color 1 for black and 2 for White")) 
+   (choice (read)))
 
 (defun choice (choice)
   (print choice)
-  (cond
-      ((eq choice "b") (setq st 0))
-      ((eq choice "w") (setq st 0))
-      (t (start st))))
-    
+  (if (= choice 1)
+      (progn
+        (princ "you chosed black") 
+        t)
+      (if (= choice 2)
+       (progn 
+        (princ "you choosed white")
+        t)
+       (progn
+        (princ "wrong choice please try again")
+        nil)    
 
 (defun cross-product (fn xlist ylist)
   "Return a list of all (fn x y) values."
