@@ -20,6 +20,8 @@
 
 
 (defconstant directions '(-11 -10 -9 -1 1 9 10 11))
+(defvar *move-number* 1 "The number of the move to be played")
+
 
 ;;---------------------------------------------------------------------------------------------
 
@@ -171,12 +173,24 @@
           (m-flip (+ move dir) player board dir))
           nil ))))
 
-(defvar st 1)
 
-(defun start (st)
-   (print-board *board*)
-   (princ (format t "~% ~% ~% ~A" "choose a color 1 for BLACK and 2 for WHITE     =>")) 
-   (loop while (not (choice (read)))))
+(defun select-strategy (player)
+  (print (format t "chose the strategy for the ~a ~% 1 HUMAN ~% 2 RANDOM ~% 3 ALPHA-BETA " player))
+  (strategy-choice (read) player))
+
+
+
+(defun strategy-choice (choice player)
+	(if (= choice 1)
+	    (princ (format t "you chosed HUMAM for the player ~a" player))
+	    (if (= choice 2)
+		(princ (format t "you chosed RANDOM for the player ~a" player))
+		(if (= choice 3)
+		    (princ (format t "you chosed ALPHA-BETA for the player ~a" player))
+		    (princ "wrong choice please try again ")))))
+
+
+
 
 (defun choice (choice)
   (print choice)
@@ -193,8 +207,43 @@
         nil))))
 
 
-(defun game-launch (black-player white-player)
-  )
+(defun othello ()
+  (let* ((board (start_board)))
+	(catch 'game-over
+	  (loop for *move-number* from 1
+	       for player = black then (next-to-play board player t)
+	       for strategy = #'human
+	       until (null player)
+	       do (get-move strategy player board))
+	  (when t
+	    (format t "~&The game is over. Final result:")
+	    (print-board board)))))
+
+(defun next-to-play (board previous-player print)
+  "Compute the player to move next, or NIL if nobody can move."
+  (let ((opp (opponent previous-player)))
+    (cond ((have_moves opp board) opp)
+          ((have_moves previous-player board) 
+           (when print
+             (format t "~&~c has no moves and must pass."
+                     (piece_simbol opp)))
+           previous-player)
+          (t nil))))
+
+
+
+(defun get-move (strategy player board)
+  (when t (print-board board))
+  (let*  ((move (funcall strategy player (replace *board* board))))
+    (cond
+    ((eq move 'resign)
+       (throw 'game-over (if (eql player black) -64 64)))
+    ((and (valid-place move) (legal-place move player board))
+         (format t "~&~c moves to ~a." 
+                 (piece_simbol player) (88->h8 move))
+       (m-move move player board)))))
+
+
 
 (defun cross-product (fn xlist ylist)
   "Return a list of all (fn x y) values."
@@ -224,4 +273,3 @@
   (format t "~&~c to move ~a: " (piece_simbol player)
           (mapcar #'88->h8 (possible-moves player board)))
   (h8->88 (read)))
-
