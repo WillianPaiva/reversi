@@ -1,4 +1,4 @@
-;;constants to be used
+0;;constants to be used
 ;;--------------------------------------------------------------------------
 ;; empty squares
 (defconstant empty 0 )
@@ -117,6 +117,8 @@
               do (format t "~c " (piece_simbol piece)))))
 
 
+
+
 (defun count-difference (player board)
   (- (count player board)
      (count (opponent player) board)))
@@ -174,45 +176,12 @@
           nil ))))
 
 
-(defun select-strategy (player)
-  (print (format t "chose the strategy for the ~a ~% 1 HUMAN ~% 2 RANDOM ~% 3 ALPHA-BETA " player))
-  (strategy-choice (read) player))
-
-
-
-(defun strategy-choice (choice player)
-	(if (= choice 1)
-	    (princ (format t "you chosed HUMAM for the player ~a" player))
-	    (if (= choice 2)
-		(princ (format t "you chosed RANDOM for the player ~a" player))
-		(if (= choice 3)
-		    (princ (format t "you chosed ALPHA-BETA for the player ~a" player))
-		    (princ "wrong choice please try again ")))))
-
-
-
-
-(defun choice (choice)
-  (print choice)
-  (if (= choice 1)
-      (progn
-        (princ "you chosed BLACK") 
-        t)
-      (if (= choice 2)
-       (progn 
-        (princ "you choosed WHITE")
-        t)
-       (progn
-        (princ "wrong choice please try again BLACK = 1 WHITE = 2       =>")
-        nil))))
-
-
 (defun othello ()
   (let* ((board (start_board)))
 	(catch 'game-over
 	  (loop for *move-number* from 1
 	       for player = black then (next-to-play board player t)
-	       for strategy = #'human
+	       for strategy = #'minimax-searcher
 	       until (null player)
 	       do (get-move strategy player board))
 	  (when t
@@ -273,3 +242,82 @@
   (format t "~&~c to move ~a: " (piece_simbol player)
           (mapcar #'88->h8 (possible-moves player board)))
   (h8->88 (read)))
+
+(defun random-strategy (player board)
+ (let ((moves (possible-moves player board)))
+  (elt moves (random (length moves)))))
+
+
+(defun minimax (player board ply eval-fn)
+  "Find the best move, for PLAYER, according to EVAL-FN,
+  searching PLY levels deep and backing up values."
+  (if (= ply 0)
+      (funcall eval-fn player board)
+      (let ((moves (possible-moves player board)))
+        (if (null moves)
+            (if (have_moves (opponent player) board)
+                (- (minimax (opponent player) board
+                            (- ply 1) eval-fn))
+                (final-value player board))
+            (let ((best-move nil)
+                  (best-val nil))
+              (dolist (move moves)
+                (let* ((board2 (m-move move player
+                                          (copy-board board)))
+                       (val (- (minimax
+                                 (opponent player) board2
+                                 (- ply 1) eval-fn))))
+                  (when (or (null best-val)
+                            (> val best-val))
+                    (setf best-val val)
+                    (setf best-move move))))
+              (values best-val best-move))))))
+
+(defun minimax-searcher (player board)
+  (multiple-value-bind (value move)
+      (minimax player board 4 #'modified-weighted-squares) 
+    (declare (ignore value))
+    move))
+
+(defconstant winning-value most-positive-fixnum)
+(defconstant losing-value  most-negative-fixnum)
+
+
+(defun copy-board (board)
+  (copy-seq board))
+
+
+(defun final-value (player board)
+  "Is this a win, loss, or draw for player?"
+  (case (signum (count-difference player board))
+    (-1 losing-value)
+    ( 0 0)
+    (+1 winning-value)))
+
+
+
+(defun modified-weighted-squares (player board)
+  "Like WEIGHTED-SQUARES, but don't take off for moving
+  near an occupied corner."
+  (let ((w (weighted-squares player board)))
+    (dolist (corner '(11 18 81 88))
+      (when (not (eql (bref board corner) empty))
+        (dolist (c (neighbors corner))
+          (when (not (eql (bref board c) empty))
+            (incf w (* (- 5 (aref *weights* c))
+                       (if (eql (bref board c) player)
+                           +1 -1)))))))
+    w))
+
+
+(let ((neighbor-table (make-array 100 :initial-element nil)))
+  ;; Initialize the neighbor table
+  (dolist (square in-board-squares)
+    (dolist (dir directions)
+      (if (valid-place (+ square dir))
+          (push (+ square dir)
+                (aref neighbor-table square)))))
+
+  (defun neighbors (square)
+    "Return a list of all squares adjacent to a square."
+    (aref neighbor-table square)))
