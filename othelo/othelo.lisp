@@ -175,13 +175,42 @@
           (m-flip (+ move dir) player board dir))
           nil ))))
 
-
 (defun othello ()
+  (format t "please chose a strategy ~%")
+  (format t "1 for ---> human vs human ~%")
+  (format t "2 for ---> human vs IA ~%")
+  (format t "3 for ---> IA vs IA ~%")
+  (let ((choice (read)))
+   (cond
+      ((= choice 1)
+        (othello-start #'human #'human))
+      ((= choice 2)
+        (chose-color))
+      ((= choice 3)
+        (othello-start #'minimax-searcher #'minimax-searcher))
+      (t (format t "option not avaliable please try again ~%")
+          (othello)))))
+
+(defun chose-color () 
+  (format t "please chose the human player color ~%")
+  (format t "1 for ---> BLACK ~%")
+  (format t "2 for ---> WHITE ~%")
+  (let ((choice (read)))
+    (cond
+      ((= choice 1)
+        (othello-start #'human #'minimax-searcher))
+      ((= choice 2)
+        (othello-start #'minimax-searcher #'human)))))
+
+
+(defun othello-start (black-stratey white-strategy)
   (let* ((board (start_board)))
 	(catch 'game-over
 	  (loop for *move-number* from 1
 	       for player = black then (next-to-play board player t)
-	       for strategy = #'minimax-searcher
+	       for strategy = (if (eql player black)
+                            black-stratey
+                            white-strategy)
 	       until (null player)
 	       do (get-move strategy player board))
 	  (when t
@@ -210,7 +239,9 @@
     ((and (valid-place move) (legal-place move player board))
          (format t "~&~c moves to ~a." 
                  (piece_simbol player) (88->h8 move))
-       (m-move move player board)))))
+       (m-move move player board))
+    (t (warn "Illegal move: ~a" (88->h8 move))
+         (get-move strategy player board )))))
 
 
 
@@ -248,7 +279,7 @@
   (elt moves (random (length moves)))))
 
 
-(defun minimax (player board ply eval-fn)
+(defun minimax (player board achievable cutoff ply eval-fn)
   "Find the best move, for PLAYER, according to EVAL-FN,
   searching PLY levels deep and backing up values."
   (if (= ply 0)
@@ -257,29 +288,30 @@
         (if (null moves)
             (if (have_moves (opponent player) board)
                 (- (minimax (opponent player) board
-                            (- ply 1) eval-fn))
+                               (- cutoff) (- achievable)
+                               (- ply 1) eval-fn))
                 (final-value player board))
-            (let ((best-move nil)
-                  (best-val nil))
-              (dolist (move moves)
+            (let ((best-move (first moves)))
+              (loop for move in moves do
                 (let* ((board2 (m-move move player
                                           (copy-board board)))
                        (val (- (minimax
                                  (opponent player) board2
+                                 (- cutoff) (- achievable)
                                  (- ply 1) eval-fn))))
-                  (when (or (null best-val)
-                            (> val best-val))
-                    (setf best-val val)
-                    (setf best-move move))))
-              (values best-val best-move))))))
+                  (when (> val achievable)
+                    (setf achievable val)
+                    (setf best-move move)))
+                until (>= achievable cutoff))
+              (values achievable best-move))))))
 
 (defun minimax-searcher (player board)
   (multiple-value-bind (value move)
-      (minimax player board 4 #'modified-weighted-squares) 
+      (minimax player board losing-value winning-value 6 #'modified-weighted-squares) 
     (declare (ignore value))
     move))
 
-(defconstant winning-value most-positive-fixnum)
+(defconstant winning-value most-positive-fixnumi)
 (defconstant losing-value  most-negative-fixnum)
 
 
