@@ -1,8 +1,8 @@
 ;;the code of the game was most based on the code found on the book 
 ;; paradigms of artificial intelligence programming
 ;;wrote by Peter Norvig
-
-
+;;this code cam be found at 
+;;https://github.com/WillianPaiva/reversi
 
 
 
